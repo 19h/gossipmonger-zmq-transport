@@ -38,7 +38,7 @@
 "use strict";
 
 var events = require('events'),
-        net = require('net'),
+        zmq = require('zmq'),
         util = require('util');
 
 /*
@@ -154,36 +154,25 @@ TcpTransport.prototype.listen = function listen(options, callback) {
                 options = {};
         }
 
-        self.server = net.createServer(function(connection) {
-                var data = "";
-                connection.on('data', function(chunk) {
-                        data += chunk.toString("utf8");
-                });
-                connection.on('end', function() {
-                        try {
-                                data = JSON.parse(data.toString("utf8"));
-                        } catch (exception) {
-                                // ignore
-                        }
-                        if (data.deltas) {
-                                self.emit('deltas', data.sender, data.deltas);
-                        } else if (data.digest) {
-                                self.emit('digest', data.sender, data.digest);
-                        }
-                });
-                connection.on('error', function(error) {
-                        self.emit('error', error);
-                });
-        });
-        self.server.on('error', function(error) {
-                self.emit('error', error);
-        });
+        self.server = zmq.socket('pull');
 
-        // allow for options to override host and port we are listening on if it
-        // is different from one visible to the outside world
         var listenHost = options.host || self.host;
         var listenPort = options.port || self.port;
-        self.server.listen(listenPort, listenHost, callback);
+
+        self.server.connect('tcp://' + listenHost + ':' + listenPort);
+
+        self.server.on('message', function(msg){
+                try {
+                        data = JSON.parse(msg.toString("utf8"));
+                } catch (exception) {
+                        // ignore
+                }
+                if (data.deltas) {
+                        self.emit('deltas', data.sender, data.deltas);
+                } else if (data.digest) {
+                        self.emit('digest', data.sender, data.digest);
+                }
+        });
 };
 
 /*
@@ -202,18 +191,12 @@ TcpTransport.prototype.rpc = function rpc(remotePeer, payload) {
                 return self.emit('error', new Error("malformed remotePeer"));
         }
 
-        var client = net.connect({
-                        host: remotePeer.transport.host,
-                        port: remotePeer.transport.port
-                },
-                function() {
-                        if (typeof payload != "string")
-                                payload = JSON.stringify(payload);
-                        client.end(payload + '\r\n');
-                });
+        var client = zmq.socket('push');
 
-        // propagate client errors
-        client.on('error', function(error) {
-                self.emit('error', error);
-        });
+        client.bindSync('tcp://' + remotePeer.transport.host + ':' + remotePeer.transport.port);
+        
+        if (typeof payload != "string")
+                payload = JSON.stringify(payload);
+
+        return sock.send(payload + '\r\n');
 };
