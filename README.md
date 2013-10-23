@@ -1,10 +1,10 @@
-# gossipmonger-tcp-transport
+# gossipmonger-ØMQ-transport
 
 _Stability: 1 - [Experimental](https://github.com/tristanls/stability-index#stability-1---experimental)_
 
 [![NPM version](https://badge.fury.io/js/gossipmonger-tcp-transport.png)](http://npmjs.org/package/gossipmonger-tcp-transport)
 
-TCP Transport for [Gossipmonger](https://github.com/tristanls/gossipmonger) (an implementation of the Scuttlebutt gossip protocol endpoint for real-time peer-to-peer replication).
+ØMQ Transport for [Gossipmonger](https://github.com/tristanls/gossipmonger) (an implementation of the Scuttlebutt gossip protocol endpoint for real-time peer-to-peer replication).
 
 ## Contributors
 
